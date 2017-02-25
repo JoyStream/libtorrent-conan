@@ -50,6 +50,7 @@ class Libtorrent(ConanFile):
         #if self.settings.compiler.runtime == "static":
         #    if not self.options.static_runtime:
         #        raise Exception("static_runtime option needs to be set for libtorrent")
+        return
 
     def source(self):
         self.run("git clone %s" % self.source_url)
