@@ -1,15 +1,13 @@
 #include <iostream>
 #include <libtorrent/session.hpp>
+#include <boost/asio.hpp>
 
-#ifdef BOOST_ASIO_SEPARATE_COMPILATION
-  #pragma error "BOOST_ASIO_SEPARATE_COMPILATION is defined"
-#endif
-
-#ifdef BOOST_ASIO_DYN_LINK
-    #pragma error "BOOST_ASIO_DYN_LINK is defined"
+#ifndef BOOST_ASIO_HEADER_ONLY
+    #include <boost/asio/impl/src.hpp>
 #endif
 
 int main() {
-    libtorrent::session s;    
+    libtorrent::session s;
+    boost::asio::io_service io;
     return 0;
 }

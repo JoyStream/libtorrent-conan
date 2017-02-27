@@ -17,8 +17,8 @@ class LibtorrentTestConan(ConanFile):
         self.run("cmake --build . %s" % cmake.build_config)
 
     def imports(self):
-        self.copy("*.dll", "lib", "bin")
-        self.copy("*.dylib", "lib", "bin")
+        self.copy("*.dll", src="lib", dst="bin")
+        self.copy("*.dylib", src="lib", dst="bin")
 
     def test(self):
         os.chdir("bin")

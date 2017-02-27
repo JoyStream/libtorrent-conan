@@ -11,7 +11,7 @@ class Libtorrent(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     requires = "Boost/1.60.0@lasote/stable" , "OpenSSL/1.0.2j@lasote/stable"
-    #exports_sources="*"
+    #exports_sources="libtorrent*"
 
     options = {
         # option(shared "build libtorrent as a shared library" ON)
@@ -65,26 +65,35 @@ conan_basic_setup()''')
 
     def build(self):
         # Translate the conan package options to libtorrent cmake options
-        shared_def = "-Dshared=on" if self.options.shared else ""
-        static_runtime_def = "-Dstatic_runtime=on" if self.options.static_runtime else ""
-        tcmalloc_def = "-Dtcmalloc=on" if self.options.tcmalloc else ""
-        pool_allocators_def = "-Dpool-allocators=on" if self.options.pool_allocators else ""
-        encryption_def = "-Dencryption=on" if self.options.encryption else ""
-        dht_def = "-Ddht=on" if self.options.dht else ""
-        resolve_countries_def = "-Dresolve-countries=on" if self.options.resolve_countries else ""
-        unicode_def = "-Dunicode=on" if self.options.unicode else ""
-        deprecated_functions_def = "-Ddeprecated-functions=on" if self.options.deprecated_functions else ""
-        exceptions_def = "-Dexceptions=on" if self.options.exceptions else ""
-        logging_def = "-Dlogging=on" if self.options.logging else ""
-        build_tests_def = "-Dbuild_tests=on" if self.options.build_tests else ""
+        shared_def = "-Dshared=on" if self.options.shared else "-Dshared=off"
+        static_runtime_def = "-Dstatic_runtime=on" if self.options.static_runtime else "-Dstatic_runtime=off"
+        tcmalloc_def = "-Dtcmalloc=on" if self.options.tcmalloc else "-Dtcmalloc=off"
+        pool_allocators_def = "-Dpool-allocators=on" if self.options.pool_allocators else "-Dpool-allocators=off"
+        encryption_def = "-Dencryption=on" if self.options.encryption else "-Dencryption=off"
+        dht_def = "-Ddht=on" if self.options.dht else "-Ddht=off"
+        resolve_countries_def = "-Dresolve-countries=on" if self.options.resolve_countries else "-Dresolve-countries=off"
+        unicode_def = "-Dunicode=on" if self.options.unicode else "-Dunicode=off"
+        deprecated_functions_def = "-Ddeprecated-functions=on" if self.options.deprecated_functions else "-Ddeprecated-functions=off"
+        exceptions_def = "-Dexceptions=on" if self.options.exceptions else "-Dexceptions=off"
+        logging_def = "-Dlogging=on" if self.options.logging else "-Dlogging=off"
+        build_tests_def = "-Dbuild_tests=%" if self.options.build_tests else "-Dbuild_tests=off"
+
         fpic_def = "-DCMAKE_POSITION_INDEPENDENT_CODE=on" if self.options.fPIC else ""
 
         defs = '%s %s %s %s %s %s %s %s %s %s %s %s %s' % (shared_def, static_runtime_def,
            tcmalloc_def, pool_allocators_def, encryption_def, dht_def, resolve_countries_def, unicode_def,
            deprecated_functions_def, exceptions_def, logging_def, build_tests_def, fpic_def )
 
+        cpp_standard = ""
+        if str(self.settings.compiler.libcxx) == 'libstdc++11':
+            cpp_standard = "-DCMAKE_CXX_STANDARD=11"
+
+        if str(self.settings.compiler.libcxx) == 'libc++':
+            cpp_standard = "-DCMAKE_CXX_STANDARD=11"
+
         cmake = CMake(self.settings)
-        self.run('cmake libtorrent %s %s' % (cmake.command_line, defs))
+        #self.run('cmake libtorrent %s %s %s' % (cmake.command_line, defs, cpp_standard))
+        self.run('cmake libtorrent %s %s %s' % (cmake.command_line, defs, cpp_standard))
         self.run("cmake --build . %s" % cmake.build_config)
 
     def package(self):
@@ -99,7 +108,7 @@ conan_basic_setup()''')
 
     def package_info(self):
         self.cpp_info.libs = ["torrent-rasterbar"]
-        
+
         # debug
         if self.settings.build_type == "Debug":
              self.cpp_info.defines.append("TORRENT_DEBUG")
@@ -120,7 +129,7 @@ conan_basic_setup()''')
 
         #dht
         if not self.options.dht:
-            self.cpp_info.defines.append("DTORRENT_DISABLE_DHT")
+            self.cpp_info.defines.append("TORRENT_DISABLE_DHT")
 
         #pool allocators
         if not self.options.pool_allocators:
@@ -144,8 +153,7 @@ conan_basic_setup()''')
         #    self.cpp_info.defines.extend(["BOOST_ALL_NO_LIB"])
 
         if self.settings.os == "Windows" :
-            if not self.options.shared:
-                self.cpp_info.libs.extend(["wsock32", "ws2_32", "Iphlpapi"])
+            self.cpp_info.libs.extend(["wsock32", "ws2_32", "Iphlpapi"])
             #probably not necessary for consumers?
             #self.cpp_info.defines.append("_WIN32_WINNT=0x0600")
 	        # prevent winsock1 to be included
@@ -184,6 +192,3 @@ conan_basic_setup()''')
         # add tcmalloc library if option enabled
         if self.options.tcmalloc and not self.options.shared:
             self.cpp_info.libs.extend["tcmalloc"]
-
-        
-        
