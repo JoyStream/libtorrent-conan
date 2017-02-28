@@ -48,8 +48,10 @@ libtorrent is an open source C++ library implementing the BitTorrent protocol, a
     def config(self):
         #TODO: How to handle libtorrent static_runtime options? and how does it relate to self.settings.compiler.runtime
 
-        #if making a shared library on linux boost needs to have been compiled wtih -fPIC
-        if str(self.settings.os) == "Linux" and not self.options.shared:
+        #on linux boost needs to have been compiled wtih -fPIC so it can be embedded into Libtorrent
+        #we will also build libtorrent static lib with position independent code so it can be embedded
+        #in another shared lib
+        if str(self.settings.os) == "Linux":
             self.options["Boost"].fPIC=True
             self.options.fPIC=True
 
@@ -85,8 +87,8 @@ conan_basic_setup()''')
            tcmalloc_def, pool_allocators_def, encryption_def, dht_def, resolve_countries_def, unicode_def,
            deprecated_functions_def, exceptions_def, logging_def, build_tests_def, fpic_def )
 
-        #boost 1.60 package is built with c++11 so we will build libtorrent with c++11 standard as well
-        #to ensure that same std::array type is used:
+        #boost::asio::ip::address_v4::bytes_type and boost::asio::ip::address_v6::bytes_type will differ based on what
+        #standard we compile with. So it is important to propagate how we built libtorrent with appropriate cflags when packaging
         #https://github.com/boostorg/asio/blob/d6d2c452f5e874e1cb3dc0bc71eb9b6c57dc2f48/include/boost/asio/ip/address_v4.hpp#L49
         cpp_standard = "-DCMAKE_CXX_STANDARD=11"
 
@@ -180,8 +182,10 @@ conan_basic_setup()''')
         if str(self.settings.os) != "Windows":
             if str(self.settings.compiler.libcxx) == "libstdc++":
                 self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=0")
+                self.cpp_info.cppflags.append("-std=c++11")
             elif str(self.settings.compiler.libcxx) == "libstdc++11":
                 self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=1")
+                self.cpp_info.cppflags.append("-std=c++11")
             if "clang" in str(self.settings.compiler):
                 if str(self.settings.compiler.libcxx) == "libc++":
                     self.cpp_info.cppflags.append("-stdlib=libc++")
