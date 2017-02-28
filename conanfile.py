@@ -49,7 +49,7 @@ libtorrent is an open source C++ library implementing the BitTorrent protocol, a
         #TODO: How to handle libtorrent static_runtime options? and how does it relate to self.settings.compiler.runtime
 
         #if making a shared library on linux boost needs to have been compiled wtih -fPIC
-        if str(self.settings.os) is "Linux" and not self.options.shared:
+        if str(self.settings.os) == "Linux" and not self.options.shared:
             self.options["Boost"].fPIC=True
             self.options.fPIC=True
 
@@ -107,7 +107,7 @@ conan_basic_setup()''')
         self.cpp_info.libs = ["torrent-rasterbar"]
 
         #if on linux and using static lib - we need to link to pthread
-        if str(self.settings.os) is "Linux" and not self.options.shared:
+        if str(self.settings.os) == "Linux" and not self.options.shared:
             self.cpp_info.libs.extend(["pthread"])
             #older linux glibc might also need realitime library  librt ?
 
@@ -177,16 +177,17 @@ conan_basic_setup()''')
         #http://blog.conan.io/2016/03/22/From-CMake-syntax-to-libstdc++-ABI-incompatibiliy-migrations-are-always-hard.html
         #https://gcc.gnu.org/onlinedocs/libstdc%2B%2B/manual/using_dual_abi.html
         # Libtorrent and boost are built with c++11 so we need to have consumers build with c++11 standard as well
-        if str(self.settings.compiler.libcxx) == "libstdc++":
-            self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=0")
-        elif str(self.settings.compiler.libcxx) == "libstdc++11":
-            self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=1")
-        if "clang" in str(self.settings.compiler):
-            if str(self.settings.compiler.libcxx) == "libc++":
-                self.cpp_info.cppflags.append("-stdlib=libc++")
-                self.cpp_info.cppflags.append("-std=c++11")
-                self.cpp_info.exelinkflags.append("-stdlib=libc++")
-                self.cpp_info.sharedlinkflags.append("-stdlib=libc++")
-            else:
-                self.cpp_info.cppflags.append("-stdlib=libstdc++")
-                self.cpp_info.cppflags.append("-std=c++11")
+        if str(self.settings.os) != "Windows":
+            if str(self.settings.compiler.libcxx) == "libstdc++":
+                self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=0")
+            elif str(self.settings.compiler.libcxx) == "libstdc++11":
+                self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=1")
+            if "clang" in str(self.settings.compiler):
+                if str(self.settings.compiler.libcxx) == "libc++":
+                    self.cpp_info.cppflags.append("-stdlib=libc++")
+                    self.cpp_info.cppflags.append("-std=c++11")
+                    self.cpp_info.exelinkflags.append("-stdlib=libc++")
+                    self.cpp_info.sharedlinkflags.append("-stdlib=libc++")
+                else:
+                    self.cpp_info.cppflags.append("-stdlib=libstdc++")
+                    self.cpp_info.cppflags.append("-std=c++11")
