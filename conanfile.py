@@ -4,14 +4,15 @@ import os
 class Libtorrent(ConanFile):
     name = "Libtorrent"
     version = "1.1.1"
-    license = ""
-    description = ""
+    license = "Copyright (c) 2003-2016, Arvid Norberg"
+    description = '''
+libtorrent is an open source C++ library implementing the BitTorrent protocol, along with most popular extensions, making it suitable for real world deployment. It is configurable to be able to fit both servers and embedded devices.
+    '''
     url = "https://github.com/JoyStream/libtorrent-conan.git"
     source_url = "git@github.com:JoyStream/libtorrent.git"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     requires = "Boost/1.60.0@lasote/stable" , "OpenSSL/1.0.2j@lasote/stable"
-    #exports_sources="libtorrent*"
 
     options = {
         # option(shared "build libtorrent as a shared library" ON)
@@ -45,12 +46,12 @@ class Libtorrent(ConanFile):
     default_options = "shared=True", "static_runtime=False", "tcmalloc=False", "pool_allocators=True", "encryption=True", "dht=True", "resolve_countries=True", "unicode=True", "deprecated_functions=True", "exceptions=True", "logging=False", "build_tests=False", "fPIC=True"
 
     def config(self):
-        #TODO: ensure static_runtime option matches settings.compiler.runtime, raise error if not
-        # I think this only affects windows and linux
-        #if self.settings.compiler.runtime == "static":
-        #    if not self.options.static_runtime:
-        #        raise Exception("static_runtime option needs to be set for libtorrent")
-        return
+        #TODO: How to handle libtorrent static_runtime options? and how does it relate to self.settings.compiler.runtime
+
+        #if making a shared library on linux boost needs to have been compiled wtih -fPIC
+        if str(self.settings.os) is "Linux" and not self.options.shared:
+            self.options["Boost"].fPIC=True
+            self.options.fPIC=True
 
     def source(self):
         self.run("git clone %s" % self.source_url)
@@ -84,30 +85,31 @@ conan_basic_setup()''')
            tcmalloc_def, pool_allocators_def, encryption_def, dht_def, resolve_countries_def, unicode_def,
            deprecated_functions_def, exceptions_def, logging_def, build_tests_def, fpic_def )
 
-        cpp_standard = ""
-        if str(self.settings.compiler.libcxx) == 'libstdc++11':
-            cpp_standard = "-DCMAKE_CXX_STANDARD=11"
-
-        if str(self.settings.compiler.libcxx) == 'libc++':
-            cpp_standard = "-DCMAKE_CXX_STANDARD=11"
+        #boost 1.60 package is built with c++11 so we will build libtorrent with c++11 standard as well
+        #to ensure that same std::array type is used:
+        #https://github.com/boostorg/asio/blob/d6d2c452f5e874e1cb3dc0bc71eb9b6c57dc2f48/include/boost/asio/ip/address_v4.hpp#L49
+        cpp_standard = "-DCMAKE_CXX_STANDARD=11"
 
         cmake = CMake(self.settings)
-        #self.run('cmake libtorrent %s %s %s' % (cmake.command_line, defs, cpp_standard))
-        self.run('cmake libtorrent %s %s %s' % (cmake.command_line, defs, cpp_standard))
+        self.run("cmake %s %s %s libtorrent" % (cmake.command_line, defs, cpp_standard))
         self.run("cmake --build . %s" % cmake.build_config)
 
     def package(self):
-        self.copy("*.hpp", dst="include", src="libtorrent/include/")
-        self.copy("*.h", dst="include", src="libtorrent/include/")
-        self.copy("*.h", dst="include", src="libtorrent/ed25519/src")
+        self.copy("*", dst="include", src="libtorrent/include/")
+        self.copy("*.h", dst="include/ed25519", src="libtorrent/ed25519/src", keep_path=False)
         self.copy("*.a", dst="lib", keep_path=False)
         self.copy("*.lib", dst="lib", keep_path=False)
         self.copy("*.dll", dst="lib", keep_path=False)
-        self.copy("*.so.*", dst="lib", keep_path=False)
-        self.copy("*.dylib", dst="lib", keep_path=False)
+        self.copy("*.so*", dst="lib", keep_path=False, links=True)
+        self.copy("*.dylib", dst="lib", keep_path=False, links=True)
 
     def package_info(self):
         self.cpp_info.libs = ["torrent-rasterbar"]
+
+        #if on linux and using static lib - we need to link to pthread
+        if str(self.settings.os) is "Linux" and not self.options.shared:
+            self.cpp_info.libs.extend(["pthread"])
+            #older linux glibc might also need realitime library  librt ?
 
         # debug
         if self.settings.build_type == "Debug":
@@ -116,7 +118,7 @@ conan_basic_setup()''')
         # build_tests
         if self.options.build_tests:
             self.cpp_info.defines.append("TORRENT_EXPORT_EXTRA")
-        
+
         # encryption
         if self.options.encryption:
             self.cpp_info.defines.append("TORRENT_USE_OPENSSL")
@@ -147,7 +149,7 @@ conan_basic_setup()''')
         #deprecated functions
         if not self.options.deprecated_functions:
             self.cpp_info.defines.append("TORRENT_NO_DEPRECATE")
-        
+
         # boost package does this. no need to add it again ?
         #if self.settings.compiler == "Visual Studio":
         #    self.cpp_info.defines.extend(["BOOST_ALL_NO_LIB"])
@@ -159,36 +161,32 @@ conan_basic_setup()''')
 	        # prevent winsock1 to be included
             #self.cpp_info.defines.append("WIN32_LEAN_AND_MEAN")
 
-        # Do we need to propagate compiler flag to enable/disable exceptions in consuming projects?
-        # .. from libtorrent CMakeLists.txt
-        # if (exceptions)
-        #     if (MSVC)
-        #         add_definitions(/EHsc)
-        #     else (MSVC)
-        #         add_definitions(-fexceptions)
-        #     endif (MSVC)
-        # else()
-        #     if (MSVC)
-        #         add_definitions(-D_HAS_EXCEPTIONS=0)
-        #     else (MSVC)
-        #         add_definitions(-fno-exceptions)
-        #     endif (MSVC)
-        # endif()
-
         if self.settings.compiler == "Visual Studio":
             # disable bogus deprecation warnings on msvc8
             self.cpp_info.defines.extend(["_SCL_SECURE_NO_DEPRECATE", "_CRT_SECURE_NO_DEPRECATE"])
             # these compiler settings just makes the compiler standard conforming
             self.cpp_info.cppflags.extend(["/Zc:wchar_t", "/Zc:forScope"])
-        
-        #libtorrent tries to be compatible with C98 so it produces warnings if you try to use c++11 features
-        #we don't want to put this restriction on consumers so these defenitions will not be added
-        #elseif self.settings.compiler == "apple-clang":       
-            	#add_definitions(-Wno-c++11-extensions)
-	            #add_definitions(-fcolor-diagnostics)
 
         self.cpp_info.defines.extend(["_FILE_OFFSET_BITS=64", "BOOST_EXCEPTION_DISABLE", "BOOST_ASIO_ENABLE_CANCELIO"])
 
         # add tcmalloc library if option enabled
         if self.options.tcmalloc and not self.options.shared:
             self.cpp_info.libs.extend["tcmalloc"]
+
+        #https://github.com/conan-io/conan/issues/217
+        #http://blog.conan.io/2016/03/22/From-CMake-syntax-to-libstdc++-ABI-incompatibiliy-migrations-are-always-hard.html
+        #https://gcc.gnu.org/onlinedocs/libstdc%2B%2B/manual/using_dual_abi.html
+        # Libtorrent and boost are built with c++11 so we need to have consumers build with c++11 standard as well
+        if str(self.settings.compiler.libcxx) == "libstdc++":
+            self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=0")
+        elif str(self.settings.compiler.libcxx) == "libstdc++11":
+            self.cpp_info.defines.append("_GLIBCXX_USE_CXX11_ABI=1")
+        if "clang" in str(self.settings.compiler):
+            if str(self.settings.compiler.libcxx) == "libc++":
+                self.cpp_info.cppflags.append("-stdlib=libc++")
+                self.cpp_info.cppflags.append("-std=c++11")
+                self.cpp_info.exelinkflags.append("-stdlib=libc++")
+                self.cpp_info.sharedlinkflags.append("-stdlib=libc++")
+            else:
+                self.cpp_info.cppflags.append("-stdlib=libstdc++")
+                self.cpp_info.cppflags.append("-std=c++11")
