@@ -3,8 +3,8 @@ import os
 
 class Libtorrent(ConanFile):
     name = "Libtorrent"
-    version = "1.1.1"
-    license = "Copyright (c) 2003-2016, Arvid Norberg"
+    version = "1.1.4"
+    license = "Copyright (c) 2003-2017, Arvid Norberg"
     description = '''
 libtorrent is an open source C++ library implementing the BitTorrent protocol, along with most popular extensions, making it suitable for real world deployment. It is configurable to be able to fit both servers and embedded devices.
     '''
@@ -55,10 +55,9 @@ libtorrent is an open source C++ library implementing the BitTorrent protocol, a
 
     def source(self):
         self.run("git clone %s" % self.source_url)
-        # joystream fork of libtorrent - tracking RC_1_1 branch - release tag v1.1.1
-        # removes 1 MB packet size limit
-        # backporting a fix for session hanging and stack allocator
-        self.run("cd libtorrent && git checkout 65c4622e8fb3775902852bd8de75a929ab2d3c33")
+        # joystream fork of libtorrent - tracking RC_1_1 branch - release tag v1.1.4
+        # patched to remove 1 MB packet size limit from bt_peer_connection.cpp
+        self.run("cd libtorrent && git checkout bc32acb997254564dd71bfc295d2b2472fa99446")
 
         tools.replace_in_file("libtorrent/CMakeLists.txt", "project(libtorrent)", '''project(libtorrent)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -179,4 +178,3 @@ conan_basic_setup()''')
         # Libtorrent and boost are built with c++11 so we need to have consumers build with c++11 standard as well
         if str(self.settings.compiler) != "Visual Studio":
             self.cpp_info.cppflags.append("-std=c++11")
-
