@@ -1,3 +1,2 @@
-test_package/build
-test_package/conanfile.pyc
-libtorrent/
+build/
+*.pyc
