@@ -58,7 +58,8 @@ libtorrent is an open source C++ library implementing the BitTorrent protocol, a
         # joystream fork of libtorrent - tracking RC_1_1 branch - release tag v1.1.1
         # removes 1 MB packet size limit
         # backporting a fix for session hanging and stack allocator
-        self.run("cd libtorrent && git checkout 65c4622e8fb3775902852bd8de75a929ab2d3c33")
+        # building from debug build fix commit
+        self.run("cd libtorrent && git checkout 67ab9615f8bd9d9ae222d0f1c0cb238e52535eba")
 
         tools.replace_in_file("libtorrent/CMakeLists.txt", "project(libtorrent)", '''project(libtorrent)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -179,4 +180,3 @@ conan_basic_setup()''')
         # Libtorrent and boost are built with c++11 so we need to have consumers build with c++11 standard as well
         if str(self.settings.compiler) != "Visual Studio":
             self.cpp_info.cppflags.append("-std=c++11")
-
