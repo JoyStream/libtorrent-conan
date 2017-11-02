@@ -78,7 +78,9 @@ conan_basic_setup()''')
         logging_def = "-Dlogging=on" if self.options.logging else "-Dlogging=off"
         build_tests_def = "-Dbuild_tests=%" if self.options.build_tests else "-Dbuild_tests=off"
 
-        fpic_def = "-DCMAKE_POSITION_INDEPENDENT_CODE=on" if self.options.fPIC else ""
+        fpic_def = ""
+        if self.settings.compiler != "Visual Studio":
+            fpic_def = "-DCMAKE_POSITION_INDEPENDENT_CODE=on" if self.options.fPIC else ""
 
         defs = '%s %s %s %s %s %s %s %s %s %s %s %s %s' % (shared_def, static_runtime_def,
            tcmalloc_def, pool_allocators_def, encryption_def, dht_def, resolve_countries_def, unicode_def,
