@@ -174,7 +174,7 @@ conan_basic_setup()''')
 
         # add tcmalloc library if option enabled
         if self.options.tcmalloc and not self.options.shared:
-            self.cpp_info.libs.extend["tcmalloc"]
+            self.cpp_info.libs.extend(["tcmalloc"])
 
         #https://github.com/conan-io/conan/issues/217
         #http://blog.conan.io/2016/03/22/From-CMake-syntax-to-libstdc++-ABI-incompatibiliy-migrations-are-always-hard.html
