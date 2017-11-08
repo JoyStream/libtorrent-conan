@@ -78,7 +78,9 @@ conan_basic_setup()''')
         logging_def = "-Dlogging=on" if self.options.logging else "-Dlogging=off"
         build_tests_def = "-Dbuild_tests=%" if self.options.build_tests else "-Dbuild_tests=off"
 
-        fpic_def = "-DCMAKE_POSITION_INDEPENDENT_CODE=on" if self.options.fPIC else ""
+        fpic_def = ""
+        if self.settings.compiler != "Visual Studio":
+            fpic_def = "-DCMAKE_POSITION_INDEPENDENT_CODE=on" if self.options.fPIC else ""
 
         defs = '%s %s %s %s %s %s %s %s %s %s %s %s %s' % (shared_def, static_runtime_def,
            tcmalloc_def, pool_allocators_def, encryption_def, dht_def, resolve_countries_def, unicode_def,
@@ -170,7 +172,7 @@ conan_basic_setup()''')
 
         # add tcmalloc library if option enabled
         if self.options.tcmalloc and not self.options.shared:
-            self.cpp_info.libs.extend["tcmalloc"]
+            self.cpp_info.libs.extend(["tcmalloc"])
 
         #https://github.com/conan-io/conan/issues/217
         #http://blog.conan.io/2016/03/22/From-CMake-syntax-to-libstdc++-ABI-incompatibiliy-migrations-are-always-hard.html
