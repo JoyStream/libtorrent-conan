@@ -9,7 +9,7 @@ class Libtorrent(ConanFile):
 libtorrent is an open source C++ library implementing the BitTorrent protocol, along with most popular extensions, making it suitable for real world deployment. It is configurable to be able to fit both servers and embedded devices.
     '''
     url = "https://github.com/JoyStream/libtorrent-conan.git"
-    source_url = "git@github.com:JoyStream/libtorrent.git"
+    source_https_url = "https://github.com/JoyStream/libtorrent.git"
     settings = "os", "compiler", "build_type", "arch"
     generators = "cmake"
     requires = "Boost/1.60.0@lasote/stable" , "OpenSSL/1.0.2j@lasote/stable"
@@ -54,7 +54,7 @@ libtorrent is an open source C++ library implementing the BitTorrent protocol, a
         return
 
     def source(self):
-        self.run("git clone %s" % self.source_url)
+        self.run("git clone %s" % self.source_https_url)
         # joystream fork of libtorrent - tracking RC_1_1 branch - release tag v1.1.1
         # removes 1 MB packet size limit
         # backporting a fix for session hanging and stack allocator
@@ -174,7 +174,7 @@ conan_basic_setup()''')
 
         # add tcmalloc library if option enabled
         if self.options.tcmalloc and not self.options.shared:
-            self.cpp_info.libs.extend["tcmalloc"]
+            self.cpp_info.libs.extend(["tcmalloc"])
 
         #https://github.com/conan-io/conan/issues/217
         #http://blog.conan.io/2016/03/22/From-CMake-syntax-to-libstdc++-ABI-incompatibiliy-migrations-are-always-hard.html
